@@ -496,18 +496,30 @@ def export_full_report_to_pdf(transcription: str, summary: Dict, file_info: Dict
     
     # Summary
     story.append(Paragraph("Summary", styles['Heading1']))
-    if summary.get('overview'):
-        story.append(Paragraph(f"<b>Overview:</b> {summary['overview']}", styles['Normal']))
     
-    for section_name, section_data in summary.items():
-        if section_name not in ['overview', 'full_text'] and section_data:
-            story.append(Paragraph(f"<b>{section_name.replace('_', ' ').title()}:</b>", styles['Heading2']))
-            if isinstance(section_data, list):
-                for item in section_data:
-                    story.append(Paragraph(f"• {item}", styles['Normal']))
-            else:
-                story.append(Paragraph(str(section_data), styles['Normal']))
+    # Check if full_text exists and use it as the primary content
+    if summary.get('full_text'):
+        # Split the full_text into paragraphs and format them properly
+        full_text_content = summary['full_text']
+        # Replace line breaks and format for PDF
+        full_text_content = full_text_content.replace('\n', '<br/>')
+        story.append(Paragraph(full_text_content, styles['Normal']))
+        story.append(Spacer(1, 20))
+    else:
+        # Fallback to structured sections if full_text is not available
+        if summary.get('overview'):
+            story.append(Paragraph(f"<b>Overview:</b> {summary['overview']}", styles['Normal']))
             story.append(Spacer(1, 12))
+    
+        for section_name, section_data in summary.items():
+            if section_name not in ['overview', 'full_text'] and section_data:
+                story.append(Paragraph(f"<b>{section_name.replace('_', ' ').title()}:</b>", styles['Heading2']))
+                if isinstance(section_data, list):
+                    for item in section_data:
+                        story.append(Paragraph(f"• {item}", styles['Normal']))
+                else:
+                    story.append(Paragraph(str(section_data), styles['Normal']))
+                story.append(Spacer(1, 12))
     
     doc.build(story)
     buffer.seek(0)
@@ -535,20 +547,32 @@ def export_summary_to_pdf(summary: Dict, file_info: Dict) -> bytes:
     story.append(Paragraph(file_info_text, styles['Normal']))
     story.append(Spacer(1, 20))
     
-    # Summary only
+    # Summary Content - Include full_text if available
     story.append(Paragraph("Summary", styles['Heading1']))
-    if summary.get('overview'):
-        story.append(Paragraph(f"<b>Overview:</b> {summary['overview']}", styles['Normal']))
     
-    for section_name, section_data in summary.items():
-        if section_name not in ['overview', 'full_text'] and section_data:
-            story.append(Paragraph(f"<b>{section_name.replace('_', ' ').title()}:</b>", styles['Heading2']))
-            if isinstance(section_data, list):
-                for item in section_data:
-                    story.append(Paragraph(f"• {item}", styles['Normal']))
-            else:
-                story.append(Paragraph(str(section_data), styles['Normal']))
+    # Check if full_text exists and use it as the primary content
+    if summary.get('full_text'):
+        # Split the full_text into paragraphs and format them properly
+        full_text_content = summary['full_text']
+        # Replace line breaks and format for PDF
+        full_text_content = full_text_content.replace('\n', '<br/>')
+        story.append(Paragraph(full_text_content, styles['Normal']))
+        story.append(Spacer(1, 20))
+    else:
+        # Fallback to structured sections if full_text is not available
+        if summary.get('overview'):
+            story.append(Paragraph(f"<b>Overview:</b> {summary['overview']}", styles['Normal']))
             story.append(Spacer(1, 12))
+        
+        for section_name, section_data in summary.items():
+            if section_name not in ['overview', 'full_text'] and section_data:
+                story.append(Paragraph(f"<b>{section_name.replace('_', ' ').title()}:</b>", styles['Heading2']))
+                if isinstance(section_data, list):
+                    for item in section_data:
+                        story.append(Paragraph(f"• {item}", styles['Normal']))
+                else:
+                    story.append(Paragraph(str(section_data), styles['Normal']))
+                story.append(Spacer(1, 12))
     
     doc.build(story)
     buffer.seek(0)
