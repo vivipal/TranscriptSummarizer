@@ -4,16 +4,18 @@ A Docker-based pipeline that transcribes audio recordings and generates refined 
 * **NVIDIA GPU** for accelerating **Whisper** (transcription) and **Phi** (summarization) within **Docker** containers
 * **FastAPI** + **Uvicorn** for a RESTful backend
 * **Streamlit** for a user-friendly frontend UI
-* **Ollama** for hosting the LLM model (Phi 3.5 mini-instruct) and performing advanced text summarization. Note the biggest reason for using Ollama is for the fact we are using GGUF models. The quantized Q4_K_M model provides quality and performance.
+* **Ollama** for hosting the LLM model (Phi-4) and performing advanced text summarization. Note the biggest reason for using Ollama is for the fact we are using GGUF models. The quantized Q4_K_M model provides quality and performance.
 
 ## Table of Contents
 * [Overview](#overview)
 * [Architecture](#architecture)
+* [Features](#features)
 * [Folder Structure](#folder-structure)
 * [Installation Requirements](#installation-requirements)
 * [Environment Variables](#environment-variables)
 * [Usage](#usage)
 * [Technical Details](#technical-details)
+* [Export Options](#export-options)
 * [Logging & Monitoring](#logging--monitoring)
 * [Additional Notes](#additional-notes)
 * [Troubleshooting](#troubleshooting)
@@ -22,8 +24,8 @@ A Docker-based pipeline that transcribes audio recordings and generates refined 
 ## Overview
 
 This project aims to provide an **end-to-end** solution for:
-1. **Transcribing** long or short audio recordings via **OpenAI Whisper - Medium Model**
-2. **Summarizing** those transcripts using a **Phi** (model name: `phi3.5 mini-instruct`) running inside an **Ollama** container
+1. **Transcribing** long or short audio recordings via **OpenAI Whisper Medium Model**
+2. **Summarizing** those transcripts using **Microsoft Phi-4** (14B parameters, Q4_K_M quantized) running inside an **Ollama** container
 
 ### Key Features
 * Simple **Docker Compose** stack with two services:
@@ -31,6 +33,10 @@ This project aims to provide an **end-to-end** solution for:
   2. **ollama**: Provides the Summarization Large Language Model
 * Automatic GPU offloading if NVIDIA drivers and the **NVIDIA Container Toolkit** are available
 * **Streamlit** frontend for easy user interaction: drag-and-drop audio, see transcription & summary
+* **Export capabilities**: PDF and Word document generation for summaries and full reports
+* **Real-time progress tracking** during audio processing
+* **Processing statistics** with performance metrics
+* Support for multiple audio formats: MP3, WAV, M4A, FLAC, OGG
 
 ## Architecture
 
@@ -38,7 +44,7 @@ This project aims to provide an **end-to-end** solution for:
 +----------------------------+
 | Docker Container (ollama)  |
 | LLM Summarization         |
-| (Phi 3.5 mini-instruct)   |
+| (Microsoft Phi-4)         |
 +--------------^------------+
                |
 +----------------------------------+
@@ -57,6 +63,28 @@ This project aims to provide an **end-to-end** solution for:
 |   (GPU-accelerated)   |
 +----------------------+
 ```
+
+## Features
+
+### Core Functionality
+* **Audio Transcription**: OpenAI Whisper Medium model with GPU acceleration
+* **AI Summarization**: Microsoft Phi-4 (14B parameters) with structured output
+* **Real-time Processing**: Live progress indicators and processing statistics
+* **File Information**: Automatic extraction of audio metadata (duration, bitrate, size)
+
+### Export Options
+* **PDF Export**: 
+  - Summary-only PDF with structured sections
+  - Full report PDF with transcription and summary
+* **Word Export**: Complete transcription and summary in .docx format
+* **Text Export**: Plain text transcription download
+* **Clipboard Integration**: Easy copy-to-clipboard functionality
+
+### User Interface
+* **Modern UI**: Responsive design with dark/light mode toggle
+* **Drag & Drop**: Intuitive file upload with format validation
+* **Processing Metrics**: Real-time statistics including words per minute
+* **Tabbed Results**: Organized display of transcription and summary results
 
 ## Folder Structure
 
@@ -120,12 +148,14 @@ LocalAudioTran-LLM-Summar/
   ```
 
 ### 3. System Requirements
-* Disk Space:
-  * Docker images: >1GB
-  * Full environment + models: Several GB
-* RAM: Minimum 32-64GB recommended
-* GPU Memory: 12-16GB recommended (if using GPU)
-* Internet connection: Required for downloading models
+* **Disk Space:**
+  * Docker images: ~2-3GB
+  * Phi-4 model (Q4_K_M): ~8GB
+  * Full environment + models: ~12-15GB
+* **RAM:** Minimum 16GB, 32GB+ recommended for optimal performance
+* **GPU Memory:** 12-16GB VRAM recommended (Phi-4 14B Q4_K_M quantized)
+* **CPU:** Fallback support for systems without GPU
+* **Internet connection:** Required for initial model downloads
 
 ### 4. Environment Setup (Mandatory Step)
 Create a `.env` file at the repository root:
@@ -160,11 +190,13 @@ This creates two containers:
 * Ollama: Port `11434` (internal use only)
 
 ### 3. Processing Audio
-1. Open Streamlit interface
-2. Upload audio file (supported: mp3, wav, m4a)
-3. Click "Process Audio"
-4. View results in "Transcription" and "Summary" tabs
-5. Optional use the Clipboard to copy the summary as a text file
+1. Open Streamlit interface at `http://localhost:8501`
+2. Upload audio file (supported: MP3, WAV, M4A, FLAC, OGG - max 200MB)
+3. Review file information (duration, size, estimated processing time)
+4. Click "🚀 Start Processing"
+5. Monitor real-time progress through transcription and summarization stages
+6. View results in "📝 Transcription" and "📋 Summary" tabs
+7. Export results using various format options
 ## Technical Details
 
 ### Transcription Flow
@@ -174,7 +206,7 @@ This creates two containers:
 4. Results returned to client
 
 ### Summarization Flow
-1. **Direct Processing**: Transcript processed in a single pass using Phi model. The biggest reason to choose a large context window is to ensure the model can process the entire transcript without truncation, chunking, overlapping sections etc as the quality gets deteriorated with chunking
+1. **Direct Processing**: Transcript processed in a single pass using Phi-4 model with 131K context window to ensure the model can process the entire transcript without truncation, chunking, or overlapping sections as quality gets deteriorated with chunking
 2. **Structured Output**: Summary organized into clear sections:
    - Overview
    - Main Points
@@ -182,6 +214,24 @@ This creates two containers:
    - Action Items / Decisions
    - Open Questions / Next Steps
    - Conclusions
+3. **Advanced Parsing**: AI-generated summary is parsed and structured for both display and export
+
+## Export Options
+
+### PDF Export
+* **Summary PDF**: Contains only the AI-generated summary with structured sections
+* **Full Report PDF**: Includes both complete transcription and summary
+* **Professional Formatting**: Clean layout with proper headings and bullet points
+
+### Document Export
+* **Word (.docx)**: Complete transcription and summary in Microsoft Word format
+* **Text (.txt)**: Plain text transcription for simple text processing
+* **Structured Layout**: Organized sections with clear headings and formatting
+
+### Interactive Features
+* **Copy to Clipboard**: Easy text selection and copying from the web interface
+* **Download Buttons**: One-click downloads with timestamp-based filenames
+* **Processing Statistics**: Export includes metadata like processing time and file information
 
 ## Logging & Monitoring
 
@@ -196,6 +246,13 @@ View combined logs:
 ```bash
 docker-compose logs -f
 ```
+
+### Performance Monitoring
+The UI displays real-time processing statistics including:
+* **Processing Speed**: Real-time vs audio duration ratio
+* **Words per Second**: Transcription throughput
+* **Processing Efficiency**: Overall system performance metrics
+* **File Analysis**: Automatic format detection, duration calculation, and processing time estimation
 
 ## Troubleshooting
 
@@ -216,8 +273,8 @@ nvidia-smi
 
 #### Memory Issues
 * Reduce model size
-* Lower context window
-* Ensure sufficient GPU memory (16-24GB)
+* Lower context window (default: 131,072 tokens)
+* Ensure sufficient GPU memory (16-24GB for Phi-4 14B model)
 
 #### Port Conflicts
 Default ports:
