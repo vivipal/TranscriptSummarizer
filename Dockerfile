@@ -35,16 +35,10 @@ RUN pip install --no-cache-dir -r frontend/requirements.txt
 COPY backend/ backend/
 COPY frontend/ frontend/
 
-# Download NLTK data
-RUN python3 -c "import nltk; nltk.download('punkt', download_dir='/usr/local/share/nltk_data'); \
-               nltk.download('stopwords', download_dir='/usr/local/share/nltk_data'); \
-               nltk.download('averaged_perceptron_tagger', download_dir='/usr/local/share/nltk_data')"
-
-# Expose relevant ports
-EXPOSE 8000 8501
-
-# Create a startup script to run both FastAPI and Streamlit
+# Create a startup script that checks and downloads models if needed
 RUN echo '#!/bin/bash\n\
+# Check and download models if not present in volumes\n\
+python3 -c "import whisper; whisper.load_model('\''large'\'')" & \n\
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 & \n\
 streamlit run frontend/src/app.py --server.port=8501 --server.address=0.0.0.0\n\
 wait' > /start.sh && chmod +x /start.sh

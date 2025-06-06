@@ -4,21 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"   # FastAPI
+      - "8001:8000"   # FastAPI
       - "8501:8501"   # Streamlit
-
-    # Bind-mount your local code into the container
     volumes:
       - ./:/app
-
-    # (A) Load environment variables from .env file:
+      - whisper-models:/root/.cache/whisper  # Persist Whisper models
+      - phi-models:/root/.cache/huggingface  # Persist Phi and other HF models
     env_file:
       - .env
-
-    # (B) Additional environment variables (optional):
     environment:
       - PYTHONPATH=/app
-
     deploy:
       resources:
         reservations:
@@ -26,7 +21,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -37,6 +31,8 @@ services:
     image: ollama/ollama:latest
     ports:
       - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama  # Persist Ollama models
     deploy:
       resources:
         reservations:
@@ -44,3 +40,9 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+# Define named volumes
+volumes:
+  whisper-models:
+  phi-models:
+  ollama-models:
