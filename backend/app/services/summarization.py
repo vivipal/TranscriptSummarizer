@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class SummarizationService:
     def __init__(self):
         self.ollama_url = "http://ollama:11434"
-        self.model_name = "phi4"
+        self.model_name = "mistral:7b"
         self.model = None
         # Load model on initialization
         self.load_model()
@@ -36,24 +36,18 @@ class SummarizationService:
                 return
 
             logger.info("Creating Phi model in Ollama...")
-            modelfile = '''
-FROM phi4:14b-q4_K_M
-PARAMETER temperature 0.7
-PARAMETER num_ctx 131072
-PARAMETER num_gpu 50
-TEMPLATE """
-{{- if .System }}
-{{.System}}
-{{- end }}
 
-{{.Prompt}}
-"""
-'''
             response = requests.post(
                 f"{self.ollama_url}/api/create",
                 json={
-                    "name": self.model_name,
-                    "modelfile": modelfile,
+                    "model": "mistral:7b",
+                    "from": "mistral:7b",
+                    "prompt": "<s>[INST] {{ if .System }}{{.System}}[/INST]{{ end }}\n{{.Prompt}} [/INST]",
+                    "options": {
+                        "temperature": 0.7,
+                        "num_predict": 32768,
+                        "num_gpu": 1
+                    }
                 }
             )
             if response.status_code == 200:
@@ -131,8 +125,8 @@ You are a helpful AI assistant specialized in summarizing transcripts from vario
                     "stream": False,
                     "options": {
                         "temperature": 0.7,
-                        "num_ctx": 131072,
-                        "num_gpu": 50
+                        "num_predict": 32768,
+                        "num_gpu": 1
                     }
                 }
             )
@@ -265,12 +259,12 @@ You are a helpful AI assistant specialized in summarizing transcripts from vario
                     current_points = []
 
                 elif line.startswith('-') and current_section in [
-                    'main_points',
-                    'key_insights',
-                    'action_items_decisions',
-                    'open_questions_next_steps',
-                    'conclusions'
-                ]:
+                        'main_points',
+                        'key_insights',
+                        'action_items_decisions',
+                        'open_questions_next_steps',
+                        'conclusions'
+                    ]:
                     current_points.append(line.lstrip('- ').strip())
                 else:
                     # If it's an overview or a line that doesn't match the above sections
@@ -278,12 +272,12 @@ You are a helpful AI assistant specialized in summarizing transcripts from vario
                         # Append to the overview text
                         sections['overview'] += " " + line
                     elif current_section in [
-                        'main_points',
-                        'key_insights',
-                        'action_items_decisions',
-                        'open_questions_next_steps',
-                        'conclusions'
-                    ]:
+                            'main_points',
+                            'key_insights',
+                            'action_items_decisions',
+                            'open_questions_next_steps',
+                            'conclusions'
+                        ]:
                         # If we want to treat these as bullet items
                         current_points.append(line.strip())
 
