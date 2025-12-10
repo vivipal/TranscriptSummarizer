@@ -73,6 +73,7 @@ class TranscriptionService:
         try:
             if hasattr(self, 'model'):
                 del self.model
+                self.model = None
                 torch.cuda.empty_cache()
                 logger.info("Whisper model unloaded successfully")
         except Exception as e:
