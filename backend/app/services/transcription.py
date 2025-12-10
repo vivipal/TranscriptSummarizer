@@ -42,7 +42,7 @@ class TranscriptionService:
                 logger.info("Processing audio with Whisper...")
                 result = self.model.transcribe(
                     tmp.name,
-                    language='en',
+                    # language='en',
                     task='transcribe',
                     fp16=torch.cuda.is_available(),
                     verbose=False,
